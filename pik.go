@@ -21,6 +21,8 @@ func main() {
 
 	if strings.ToLower(*method) == "get" {
 		get()
+	} else if strings.ToLower(*method) == "post" {
+		post()
 	}
 }
 
@@ -43,4 +45,10 @@ func get() {
 	}
 
 	fmt.Println(string(body))
+}
+
+func post() {
+	if len(args) != 2 {
+		log.Fatal("pik post requires 2 parameters. Ex. ---> pik -M=post http://boom.com/insert \"{item1: \"item1\"}\" ")
+		}
 }
