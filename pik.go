@@ -6,70 +6,83 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strings"
+	"bytes"
 )
 
-var method string
-var doc string
-var body string
-var url string
+var (
+	method string
+	doc string
+	url string
+	body string
 
-var args []string
-var result string
-
+	args []string
+	result string
+)
 
 
 func main() {
 
-	method := flag.String("met", "get", "The Http method to use. Defaults to 'get'")
-	doc := flag.String("doc", "application/json", "The document type for the body (POST)")
-	body := flag.String("body", nil, "The Body for the POST method")
-	url := flag.String("url", nil, "The url for the HTTP action")
+
+	flag.StringVar(&method, "met", "get", "The Http method to use. Defaults to 'get'")
+	flag.StringVar(&doc, "doc", "application/json", "The document type for the body (POST)")
+	flag.StringVar(&body, "body", "", "The Body for the POST method")
+	flag.StringVar(&url, "url", "", "The url for the HTTP action")
 
 	flag.Parse()
 	args = flag.Args()
 
-
-
-	if strings.ToLower(*method) == "get" {
-		result = get()
-	} else if strings.ToLower(*method) == "post" {
-		result = post()
-	}
-
-	if *run != "NONE" {
-		
-	} 
+	methodSwitch()
+	fmt.Println(result)
 }
 
-func get() string {
+func methodSwitch() {
 
-	if len(args) != 1 {
-		log.Fatal("pik get requires 1 parameter (url)")
+	if "get" == method {
+		if len(url) > 0 {
+			get()
+		}
+	} else if method == "post" {
+		if len(url) > 0 {
+			post()
+		}
 	}
+}
 
+func get() {
 
 	/** trys the user defined arg. If it doesn't work, attempts "http://" prepended to it */
-	rs, err1 := http.Get(args[0])
-	if err1 != nil {
-		rs, err1 = http.Get("http://" + args[0])
-		if err1 != nil {
-			log.Fatal(err1)
+	rs, err := http.Get(url)
+	if err != nil {
+		rs, err = http.Get("http://" + url)
+		if err != nil {
+			log.Fatal(err)
 		}		
 	}
 
 	defer rs.Body.Close() //TODO maybe should be in previous if else block
 
-	body, err2 := ioutil.ReadAll(rs.Body)
+	rsBody, err2 := ioutil.ReadAll(rs.Body)
 	if err2 != nil {
 		log.Fatal(err2)
 	}
 
-	return string(body)
+	result = string(rsBody)
 }
 
 func post() {
-	if len(args) != 2 {
-		log.Fatal("pik post requires 2 parameters. Ex. ---> pik -M=post http://boom.com/insert \"{item1: \"item1\"}\" ")
+
+	// "http://localhost:4567/update"
+	query := []byte(body)
+	resp, err := http.Post(url, doc, bytes.NewBuffer(query))
+
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		defer resp.Body.Close()
 	}
+
+	rsBody, _ := ioutil.ReadAll(resp.Body) //TODO check the error
+
+	result = string(rsBody)
 }
+
